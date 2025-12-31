@@ -55,7 +55,7 @@ const mockSensors: Sensor[] = [
   { id: 'STA-LINK-01', name: 'Uplink Status', category: 'status', unit: '%', normalRange: [99, 100] },
 ];
 
-// Mock Grid Nodes (replacing Satellites)
+// Mock Grid Nodes
 const mockNodes: NodeStats[] = [
   { id: 'NODE-001', name: 'SUBSTATION-ALPHA', status: 'nominal', health: 98, zone: 'Zone A - Industrial', lastContact: '0ms' },
   { id: 'NODE-002', name: 'SUBSTATION-BETA', status: 'nominal', health: 99, zone: 'Zone A - Industrial', lastContact: '12ms' },
