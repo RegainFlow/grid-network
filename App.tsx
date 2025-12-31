@@ -1,83 +1,86 @@
 import React, { useState, useEffect } from 'react';
 import { StatCard } from './components/StatCard';
 import { TelemetryChart } from './components/TelemetryChart';
-import { SatelliteVisualizer } from './components/SatelliteVisualizer';
+import { GridVisualizer } from './components/GridVisualizer';
 import { SensorFilter, Sensor } from './components/SensorFilter';
-import { ConstellationNav, Satellite } from './components/ConstellationNav';
+import { NetworkNav } from './components/NetworkNav';
 import { analyzeAnomaly } from './services/geminiService';
-import { AnomalyEvent, TelemetryData } from './types';
+import { AnomalyEvent, SensorMetric, NodeStats } from './types';
 import { Icons } from './components/Icons';
 
 // --- MOCK DATA GENERATION ---
-const generateTelemetry = (points: number, sensor: Sensor, satelliteId: string): TelemetryData[] => {
-  const data: TelemetryData[] = [];
+const generateSensorData = (points: number, sensor: Sensor, nodeId: string): SensorMetric[] => {
+  const data: SensorMetric[] = [];
   const now = new Date();
   const [min, max] = sensor.normalRange;
   const range = max - min;
 
-  // Use satelliteId to create slight variations in data patterns
-  const satModifier = satelliteId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 10;
+  // Use nodeId to create slight variations in data patterns
+  const nodeModifier = nodeId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 10;
 
   for (let i = points; i > 0; i--) {
     const time = new Date(now.getTime() - i * 1000 * 60);
     const isAnomaly = Math.random() > 0.98; // Rare historical anomalies
     const baseValue = min + range / 2;
 
-    // Add some noise and variation based on satellite
+    // Add some noise and variation based on node
     const noise = (Math.random() - 0.5) * (range * 0.05);
-    const trend = Math.sin(i * 0.1 + satModifier) * (range * 0.15);
+    const trend = Math.sin(i * 0.1 + nodeModifier) * (range * 0.15);
 
     data.push({
       timestamp: time.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' }),
-      voltage: sensor.category === 'power' ? baseValue + trend + noise + (isAnomaly ? range * 0.3 : 0) : 28,
-      temperature: sensor.category === 'thermal' ? baseValue + trend + noise + (isAnomaly ? range * 0.3 : 0) : 45,
-      signalStrength: -80 + Math.random() * 5,
+      voltage: sensor.category === 'power' ? baseValue + trend + noise + (isAnomaly ? range * 0.3 : 0) : 120,
+      temperature: sensor.category === 'thermal' ? baseValue + trend + noise + (isAnomaly ? range * 0.3 : 0) : 60,
+      vibration: sensor.category === 'vibration' ? baseValue + trend + noise + (isAnomaly ? range * 0.5 : 0) : 0,
+      pressure: sensor.category === 'pressure' ? baseValue + trend + noise + (isAnomaly ? range * 0.4 : 0) : 3000,
+      flow: sensor.category === 'flow' ? baseValue + trend + noise + (isAnomaly ? range * 0.4 : 0) : 500,
+      signalStrength: -40 + Math.random() * 5,
       isAnomaly: isAnomaly && Math.random() > 0.5
     });
   }
   return data;
 };
 
-// Mock sensors
+// Mock sensors for Industrial IoT
 const mockSensors: Sensor[] = [
-  { id: 'PWR-001', name: 'Bus Voltage Monitor', category: 'power', unit: 'V', normalRange: [26, 32] },
-  { id: 'PWR-002', name: 'Solar Array Output', category: 'power', unit: 'V', normalRange: [28, 34] },
-  { id: 'THM-001', name: 'Battery Cell Temperature', category: 'thermal', unit: '°C', normalRange: [40, 50] },
-  { id: 'THM-002', name: 'Payload Thermal Sensor', category: 'thermal', unit: '°C', normalRange: [35, 45] },
-  { id: 'COM-001', name: 'Downlink Signal Strength', category: 'comms', unit: 'dBm', normalRange: [-85, -75] },
-  { id: 'COM-002', name: 'Uplink Signal Quality', category: 'comms', unit: 'dBm', normalRange: [-80, -70] },
-  { id: 'PROP-001', name: 'Thruster Pressure', category: 'propulsion', unit: 'PSI', normalRange: [100, 150] },
-  { id: 'ATT-001', name: 'Gyroscope X-Axis', category: 'attitude', unit: '°/s', normalRange: [-2, 2] },
-  { id: 'ATT-002', name: 'Star Tracker Accuracy', category: 'attitude', unit: 'arcsec', normalRange: [0, 5] },
-  { id: 'PAY-001', name: 'Imaging Sensor Temp', category: 'payload', unit: '°C', normalRange: [15, 25] },
+  { id: 'PWR-MAINS-A', name: 'Main Bus Voltage A', category: 'power', unit: 'kV', normalRange: [11.8, 12.2] },
+  { id: 'PWR-MAINS-B', name: 'Main Bus Voltage B', category: 'power', unit: 'kV', normalRange: [11.8, 12.2] },
+  { id: 'THM-TR-01', name: 'Transformer Core Temp', category: 'thermal', unit: '°C', normalRange: [65, 85] },
+  { id: 'THM-TR-02', name: 'Transformer Oil Temp', category: 'thermal', unit: '°C', normalRange: [50, 70] },
+  { id: 'VIB-GEN-01', name: 'Turbine Vibration X', category: 'vibration', unit: 'mm/s', normalRange: [0, 4.5] },
+  { id: 'VIB-GEN-02', name: 'Turbine Vibration Y', category: 'vibration', unit: 'mm/s', normalRange: [0, 4.5] },
+  { id: 'PRS-HYD-01', name: 'Hydraulic Pressure', category: 'pressure', unit: 'psi', normalRange: [2800, 3100] },
+  { id: 'PRS-LUBE-01', name: 'Lube Oil Pressure', category: 'pressure', unit: 'psi', normalRange: [40, 60] },
+  { id: 'FLO-COOL-01', name: 'Coolant Flow Rate', category: 'flow', unit: 'L/min', normalRange: [450, 550] },
+  { id: 'STA-LINK-01', name: 'Uplink Status', category: 'status', unit: '%', normalRange: [99, 100] },
 ];
 
-// Mock satellites
-const mockSatellites: Satellite[] = [
-  { id: 'SAT-001', name: 'REGAINFLOW-ALPHA', status: 'operational', health: 98, orbit: 'LEO • 550km', activeAnomalies: 3 },
-  { id: 'SAT-002', name: 'REGAINFLOW-BETA', status: 'operational', health: 99, orbit: 'LEO • 550km', activeAnomalies: 0 },
-  { id: 'SAT-003', name: 'REGAINFLOW-GAMMA', status: 'warning', health: 87, orbit: 'LEO • 550km', activeAnomalies: 1 },
-  { id: 'SAT-004', name: 'REGAINFLOW-DELTA', status: 'operational', health: 96, orbit: 'LEO • 550km', activeAnomalies: 0 },
-  { id: 'SAT-005', name: 'REGAINFLOW-EPSILON', status: 'critical', health: 62, orbit: 'LEO • 550km', activeAnomalies: 5 },
+// Mock Grid Nodes (replacing Satellites)
+const mockNodes: NodeStats[] = [
+  { id: 'NODE-001', name: 'SUBSTATION-ALPHA', status: 'nominal', health: 98, zone: 'Zone A - Industrial', lastContact: '0ms' },
+  { id: 'NODE-002', name: 'SUBSTATION-BETA', status: 'nominal', health: 99, zone: 'Zone A - Industrial', lastContact: '12ms' },
+  { id: 'NODE-003', name: 'PLANT-GAMMA', status: 'degraded', health: 87, zone: 'Zone B - Manufacturing', lastContact: '45ms' },
+  { id: 'NODE-004', name: 'GRID-DELTA', status: 'nominal', health: 96, zone: 'Zone C - Residential', lastContact: '8ms' },
+  { id: 'NODE-005', name: 'CONTROL-EPSILON', status: 'critical', health: 62, zone: 'Zone D - Remote', lastContact: '150ms' },
 ];
 
 // Initial mock anomalies database
 const initialAnomalies: AnomalyEvent[] = [
-  { id: '1', satelliteId: 'SAT-001', type: 'Voltage Spike', timestamp: '10:42:15', severity: 'warning', description: 'Bus voltage exceeded 32V for 500ms', status: 'new' },
-  { id: '2', satelliteId: 'SAT-001', type: 'Thermal Runaway', timestamp: '09:15:00', severity: 'critical', description: 'Battery cell temp > 60C', status: 'investigating' },
-  { id: '3', satelliteId: 'SAT-001', type: 'Signal Loss', timestamp: '08:30:22', severity: 'info', description: 'Brief downlink interruption', status: 'resolved' },
-  { id: '4', satelliteId: 'SAT-003', type: 'Attitude Drift', timestamp: '11:20:05', severity: 'warning', description: 'Gyro deviation > 0.5 deg', status: 'new' },
-  { id: '5', satelliteId: 'SAT-005', type: 'Power Failure', timestamp: '06:10:00', severity: 'critical', description: 'Solar array output drop', status: 'investigating' },
-  { id: '6', satelliteId: 'SAT-005', type: 'Thermal Critical', timestamp: '06:15:30', severity: 'critical', description: 'Payload temp critical', status: 'new' },
-  { id: '7', satelliteId: 'SAT-005', type: 'Comms Degraded', timestamp: '07:00:00', severity: 'warning', description: 'High bit error rate', status: 'investigating' },
-  { id: '8', satelliteId: 'SAT-005', type: 'Processor Reset', timestamp: '07:45:12', severity: 'warning', description: 'Unexpected watchdog reset', status: 'resolved' },
-  { id: '9', satelliteId: 'SAT-005', type: 'Memory Error', timestamp: '08:00:00', severity: 'critical', description: 'SEU detected in RAM', status: 'new' },
+  { id: '1', nodeId: 'NODE-001', type: 'Voltage Sag', timestamp: '10:42:15', severity: 'warning', description: 'Bus voltage drop > 5%', status: 'new' },
+  { id: '2', nodeId: 'NODE-001', type: 'Transformer Overheat', timestamp: '09:15:00', severity: 'critical', description: 'Core temp > 90°C', status: 'investigating' },
+  { id: '3', nodeId: 'NODE-001', type: 'Link Jitter', timestamp: '08:30:22', severity: 'info', description: 'Latency spike detected', status: 'resolved' },
+  { id: '4', nodeId: 'NODE-003', type: 'Vibration Spike', timestamp: '11:20:05', severity: 'warning', description: 'Turbine imbalance detected', status: 'new' },
+  { id: '5', nodeId: 'NODE-005', type: 'Pressure Loss', timestamp: '06:10:00', severity: 'critical', description: 'Hydraulic pressure drop', status: 'investigating' },
+  { id: '6', nodeId: 'NODE-005', type: 'Coolant Leak', timestamp: '06:15:30', severity: 'critical', description: 'Flow rate critical low', status: 'new' },
+  { id: '7', nodeId: 'NODE-005', type: 'Pump Failure', timestamp: '07:00:00', severity: 'warning', description: 'Feed pump trip', status: 'investigating' },
+  { id: '8', nodeId: 'NODE-005', type: 'Controller Reset', timestamp: '07:45:12', severity: 'warning', description: 'Unexpected reboot', status: 'resolved' },
+  { id: '9', nodeId: 'NODE-005', type: 'Memory Fault', timestamp: '08:00:00', severity: 'critical', description: 'PLC memory corruption', status: 'new' },
 ];
 
 const App: React.FC = () => {
-  const [selectedSatellite, setSelectedSatellite] = useState<Satellite>(mockSatellites[0]);
+  const [selectedNode, setSelectedNode] = useState<NodeStats>(mockNodes[0]);
   const [selectedSensor, setSelectedSensor] = useState<Sensor>(mockSensors[0]);
-  const [telemetry, setTelemetry] = useState<TelemetryData[]>([]);
+  const [telemetry, setTelemetry] = useState<SensorMetric[]>([]);
   const [allAnomalies, setAllAnomalies] = useState<AnomalyEvent[]>(initialAnomalies);
   const [selectedAnomaly, setSelectedAnomaly] = useState<AnomalyEvent | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<any | null>(null);
@@ -85,19 +88,19 @@ const App: React.FC = () => {
   const [anomalyNotification, setAnomalyNotification] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filter anomalies for current satellite
-  const currentAnomalies = allAnomalies.filter(a => a.satelliteId === selectedSatellite.id);
+  // Filter anomalies for current node
+  const currentAnomalies = allAnomalies.filter(a => a.nodeId === selectedNode.id);
 
-  // Load data when satellite or sensor changes
+  // Load data when node or sensor changes
   useEffect(() => {
     setIsLoading(true);
-    // Simulate network delay for loading satellite data
+    // Simulate network delay for loading node data
     const timer = setTimeout(() => {
-      setTelemetry(generateTelemetry(30, selectedSensor, selectedSatellite.id));
+      setTelemetry(generateSensorData(30, selectedSensor, selectedNode.id));
       setIsLoading(false);
     }, 600);
     return () => clearTimeout(timer);
-  }, [selectedSensor, selectedSatellite.id]);
+  }, [selectedSensor, selectedNode.id]);
 
   // Simulate Live Data
   useEffect(() => {
@@ -114,22 +117,25 @@ const App: React.FC = () => {
         const range = max - min;
         const baseValue = min + range / 2;
 
-        // Add satellite-specific variation
-        const satModifier = selectedSatellite.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 10;
-        const trend = Math.sin(Date.now() / 10000 + satModifier) * (range * 0.15);
+        // Add node-specific variation
+        const nodeModifier = selectedNode.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 10;
+        const trend = Math.sin(Date.now() / 10000 + nodeModifier) * (range * 0.15);
 
         const newVal = {
           timestamp: nextTime,
-          voltage: selectedSensor.category === 'power' ? baseValue + trend + Math.random() * (isAnomaly ? range * 0.4 : range * 0.1) : 28,
-          temperature: selectedSensor.category === 'thermal' ? baseValue + trend + Math.random() * (isAnomaly ? range * 0.4 : range * 0.1) : 45,
-          signalStrength: -80 + Math.random() * 2,
+          voltage: selectedSensor.category === 'power' ? baseValue + trend + Math.random() * (isAnomaly ? range * 0.4 : range * 0.1) : 120,
+          temperature: selectedSensor.category === 'thermal' ? baseValue + trend + Math.random() * (isAnomaly ? range * 0.4 : range * 0.1) : 60,
+          vibration: selectedSensor.category === 'vibration' ? baseValue + trend + Math.random() * (isAnomaly ? range * 0.5 : range * 0.1) : 0,
+          pressure: selectedSensor.category === 'pressure' ? baseValue + trend + Math.random() * (isAnomaly ? range * 0.4 : range * 0.1) : 3000,
+          flow: selectedSensor.category === 'flow' ? baseValue + trend + Math.random() * (isAnomaly ? range * 0.4 : range * 0.1) : 500,
+          signalStrength: -40 + Math.random() * 2,
           isAnomaly
         };
         return [...prev.slice(1), newVal];
       });
     }, 2000);
     return () => clearInterval(interval);
-  }, [selectedSensor, selectedSatellite.id, isLoading]);
+  }, [selectedSensor, selectedNode.id, isLoading]);
 
   const handleAnalyze = async (event: AnomalyEvent) => {
     setAnalyzing(true);
@@ -150,7 +156,7 @@ const App: React.FC = () => {
   };
 
   const injectAnomaly = () => {
-    const anomalyTypes = ['voltage', 'temperature'];
+    const anomalyTypes = ['voltage', 'temperature', 'vibration'];
     const type = anomalyTypes[Math.floor(Math.random() * anomalyTypes.length)];
     const [min, max] = selectedSensor.normalRange;
     const range = max - min;
@@ -170,18 +176,18 @@ const App: React.FC = () => {
     // Add to anomaly list
     const newAnomaly: AnomalyEvent = {
       id: `${Date.now()}`,
-      satelliteId: selectedSatellite.id,
-      type: type === 'voltage' ? 'Voltage Spike' : 'Thermal Runaway',
+      nodeId: selectedNode.id,
+      type: type === 'voltage' ? 'Voltage Spike' : (type === 'temperature' ? 'Overheat' : 'High Vibration'),
       timestamp: new Date().toLocaleTimeString([], { hour12: false }),
       severity: 'warning',
       description: type === 'voltage'
         ? `${selectedSensor.name} exceeded threshold`
-        : `${selectedSensor.name} temperature critical`,
+        : `${selectedSensor.name} critical limit`,
       status: 'new'
     };
     setAllAnomalies(prev => [newAnomaly, ...prev]);
 
-    const notification = type === 'voltage' ? '⚡ Voltage Spike Detected!' : '🔥 Thermal Anomaly Detected!';
+    const notification = type === 'voltage' ? '⚡ Voltage Spike Detected!' : (type === 'temperature' ? '🔥 Thermal Anomaly!' : '⚠️ Vibration Alert!');
     setAnomalyNotification(notification);
     setTimeout(() => setAnomalyNotification(null), 3000);
   };
@@ -191,12 +197,12 @@ const App: React.FC = () => {
       {/* HEADER - Increased z-index */}
       <header className="fixed top-0 w-full z-[60] glass-panel border-b border-white/5 h-16 flex items-center justify-between px-6">
         <div className="flex items-center gap-4">
-          <ConstellationNav
-            satellites={mockSatellites}
-            selectedSatellite={selectedSatellite}
-            onSatelliteChange={(sat) => {
-              setSelectedSatellite(sat);
-              setSelectedAnomaly(null); // Reset selection when switching satellites
+          <NetworkNav
+            nodes={mockNodes}
+            selectedNode={selectedNode}
+            onNodeChange={(node) => {
+              setSelectedNode(node);
+              setSelectedAnomaly(null); // Reset selection when switching nodes
               setAiAnalysis(null);
             }}
           />
@@ -211,7 +217,7 @@ const App: React.FC = () => {
           </button>
           <div className="hidden md:flex items-center gap-2 text-xs font-mono text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20 animate-pulse">
             <div className="w-2 h-2 rounded-full bg-primary" />
-            LIVE TELEMETRY
+            LIVE SENSOR STREAM
           </div>
           <button className="p-2 hover:bg-white/5 rounded-full transition-colors relative">
             <Icons.Bell size={20} />
@@ -237,10 +243,10 @@ const App: React.FC = () => {
 
         {/* KPI ROW */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard label="System Health" value={`${selectedSatellite.health}%`} trend="0.4%" trendUp={true} icon="Activity" />
-          <StatCard label="Active Anomalies" value={`${currentAnomalies.filter(a => a.status !== 'resolved').length}`} trend="2" trendUp={false} icon="Alert" alert={true} />
-          <StatCard label="Downlink Rate" value="450 Mbps" trend="Stable" trendUp={true} icon="Radio" />
-          <StatCard label="Active Sensors" value={`${mockSensors.length}/5247`} icon="Temp" />
+          <StatCard label="Grid Health" value={`${selectedNode.health}%`} trend="0.1%" trendUp={true} icon="Activity" />
+          <StatCard label="Active Anomalies" value={`${currentAnomalies.filter(a => a.status !== 'resolved').length}`} trend="1" trendUp={false} icon="Alert" alert={true} />
+          <StatCard label="Network Load" value="452 MW" trend="Stable" trendUp={true} icon="Activity" />
+          <StatCard label="Active Sensors" value={`${mockSensors.length * 12}/5247`} icon="Temp" />
         </div>
 
         {/* MAIN VISUALIZATION ROW */}
@@ -250,7 +256,7 @@ const App: React.FC = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-display font-semibold text-lg flex items-center gap-2">
                 <Icons.Activity className="text-primary" size={18} />
-                Real-time Sensor Telemetry
+                Real-time Sensor Metrics
               </h2>
               <SensorFilter
                 sensors={mockSensors}
@@ -263,30 +269,30 @@ const App: React.FC = () => {
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-10 rounded-lg">
                   <div className="flex flex-col items-center gap-3">
                     <Icons.Activity className="animate-spin text-primary" size={32} />
-                    <span className="text-xs font-mono text-primary">ACQUIRING SIGNAL...</span>
+                    <span className="text-xs font-mono text-primary">SYNCING SCADA...</span>
                   </div>
                 </div>
               ) : (
-                <TelemetryChart data={telemetry} />
+                <TelemetryChart data={telemetry} sensorCategory={selectedSensor.category} unit={selectedSensor.unit} />
               )}
             </div>
           </div>
 
-          {/* Satellite Status */}
+          {/* Node Status */}
           <div className="glass-panel rounded-2xl p-6 flex flex-col relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-            <h2 className="font-display font-semibold text-lg mb-4 z-10 relative">Orbit Status: {selectedSatellite.name}</h2>
+            <h2 className="font-display font-semibold text-lg mb-4 z-10 relative">Node Status: {selectedNode.name}</h2>
             <div className="flex-1 rounded-xl bg-black/40 border border-white/5 overflow-hidden relative">
-              <SatelliteVisualizer />
+              <GridVisualizer />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4 z-10">
               <div className="bg-white/5 rounded-lg p-3 border border-white/5">
-                <span className="text-xs text-gray-400 block mb-1">ECLIPSE MODE</span>
-                <span className="text-sm font-mono text-white">INACTIVE</span>
+                <span className="text-xs text-gray-400 block mb-1">MAINTENANCE</span>
+                <span className="text-sm font-mono text-white">SCHEDULED</span>
               </div>
               <div className="bg-white/5 rounded-lg p-3 border border-white/5">
-                <span className="text-xs text-gray-400 block mb-1">MANEUVER</span>
-                <span className="text-sm font-mono text-success">READY</span>
+                <span className="text-xs text-gray-400 block mb-1">REDUNDANCY</span>
+                <span className="text-sm font-mono text-success">ACTIVE</span>
               </div>
             </div>
           </div>
@@ -299,13 +305,13 @@ const App: React.FC = () => {
           <div className="glass-panel rounded-2xl p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="font-display font-semibold text-lg">Detected Anomalies</h2>
-              <button className="text-xs text-primary hover:text-white transition-colors">View History</button>
+              <button className="text-xs text-primary hover:text-white transition-colors">View Logs</button>
             </div>
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {currentAnomalies.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Icons.Check size={32} className="mx-auto mb-2 opacity-50" />
-                  <p>No anomalies detected for {selectedSatellite.name}</p>
+                  <p>No anomalies detected for {selectedNode.name}</p>
                 </div>
               ) : (
                 currentAnomalies.map(anomaly => (
@@ -330,7 +336,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="mt-3 flex gap-2">
                       <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-black/30 text-gray-400 border border-white/5">
-                        {anomaly.satelliteId}
+                        {anomaly.nodeId}
                       </span>
                       <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border border-white/5 ${anomaly.status === 'new' ? 'bg-blue-500/20 text-blue-400' : anomaly.status === 'resolved' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                         {anomaly.status}
@@ -347,7 +353,7 @@ const App: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
               <h2 className="font-display font-semibold text-lg flex items-center gap-2">
                 <Icons.Cpu className="text-primary" size={18} />
-                ML Root Cause Analysis
+                SCADA/ML Root Cause Analysis
               </h2>
             </div>
 
@@ -355,7 +361,7 @@ const App: React.FC = () => {
               <div className="flex-1 flex flex-col">
                 <div className="mb-4 p-4 rounded-lg bg-primary/5 border border-primary/20">
                   <h3 className="text-sm font-semibold text-primary mb-1">Analysing Event: {selectedAnomaly.type}</h3>
-                  <p className="text-xs text-gray-400">Model: SatAnomalyNet-v2.3 | Context: Last 10m Telemetry</p>
+                  <p className="text-xs text-gray-400">Model: IndustrialNet-v4.1 | Context: Last 10m Logs</p>
                 </div>
 
                 {!aiAnalysis ? (

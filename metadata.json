@@ -1,5 +1,5 @@
 {
-  "name": "RegainFlow Sentinel",
-  "description": "An automated satellite telemetry anomaly detection dashboard featuring real-time monitoring, AI-driven analysis, and glassmorphic UI.",
+  "name": "Grid Analytics Platform",
+  "description": "An automated grid infrastructure anomaly detection dashboard featuring real-time monitoring and AI-driven analysis for industrial IoT.",
   "requestFramePermissions": []
 }

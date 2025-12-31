@@ -15,7 +15,10 @@ import {
   ChevronDown,
   Rocket,
   Compass,
-  Package
+  Package,
+  Server,
+  Gauge,
+  Droplets
 } from 'lucide-react';
 
 export const Icons = {
@@ -35,4 +38,7 @@ export const Icons = {
   Rocket: (props: any) => <Rocket {...props} />,
   Compass: (props: any) => <Compass {...props} />,
   Package: (props: any) => <Package {...props} />,
+  Server: (props: any) => <Server {...props} />,
+  Gauge: (props: any) => <Gauge {...props} />,
+  Droplets: (props: any) => <Droplets {...props} />,
 };

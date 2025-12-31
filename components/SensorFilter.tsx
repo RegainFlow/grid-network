@@ -4,7 +4,7 @@ import { Icons } from './Icons';
 export interface Sensor {
     id: string;
     name: string;
-    category: 'power' | 'thermal' | 'comms' | 'propulsion' | 'attitude' | 'payload';
+    category: 'power' | 'thermal' | 'vibration' | 'pressure' | 'flow' | 'status';
     unit: string;
     normalRange: [number, number];
 }
@@ -19,19 +19,19 @@ interface SensorFilterProps {
 const categoryIcons: Record<string, any> = {
     power: Icons.Zap,
     thermal: Icons.Temp,
-    comms: Icons.Radio,
-    propulsion: Icons.Rocket,
-    attitude: Icons.Compass,
-    payload: Icons.Package
+    vibration: Icons.Activity,
+    pressure: Icons.Gauge,
+    flow: Icons.Droplets,
+    status: Icons.Check
 };
 
 const categoryColors: Record<string, string> = {
     power: 'text-primary',
     thermal: 'text-purple-400',
-    comms: 'text-blue-400',
-    propulsion: 'text-orange-400',
-    attitude: 'text-green-400',
-    payload: 'text-pink-400'
+    vibration: 'text-blue-400',
+    pressure: 'text-orange-400',
+    flow: 'text-cyan-400',
+    status: 'text-green-400'
 };
 
 export const SensorFilter: React.FC<SensorFilterProps> = ({

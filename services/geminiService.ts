@@ -1,53 +1,53 @@
-import { AnomalyEvent, TelemetryData } from "../types";
+import { AnomalyEvent, SensorMetric } from "../types";
 
-// Mock analysis data generator - simulates custom ML model output
+// Mock analysis data generator - simulates custom ML model output for Industrial IoT
 const mockAnalysisDatabase: Record<string, any> = {
-  'Voltage Spike': {
-    rootCause: "Sudden power surge detected in solar array regulator circuit. Bus voltage exceeded safe operating threshold (32V) due to transient load imbalance during battery charge cycle transition.",
+  'Voltage Sag': {
+    rootCause: "Transient load surge on Phase B detected at substation transformer. Likely caused by startup of large induction motor in Sector 4 without soft-start sequence.",
     recommendations: [
-      "Activate redundant power conditioning unit (PCU-B)",
-      "Reduce non-critical payload power consumption by 15%",
-      "Monitor battery cell voltages for thermal runaway indicators"
+      "Inspect soft-starter contactors on Pump P-402",
+      "Verify capacitor bank switching logic",
+      "Monitor harmonics for increasing distortion"
     ],
     confidence: 0.87,
-    modelVersion: "SatAnomalyNet-v2.3"
+    modelVersion: "IndustrialNet-v4.1"
   },
-  'Thermal Runaway': {
-    rootCause: "Battery cell temperature exceeded critical threshold (60°C) indicating potential lithium-ion thermal runaway. Likely caused by overcharging during eclipse exit or internal cell degradation.",
+  'Transformer Overheat': {
+    rootCause: "Core temperature exceeding 90°C. Data correlation suggests dielectric oil circulation failure or cooling fan obstruction.",
     recommendations: [
-      "Immediately isolate affected battery cell from main bus",
-      "Engage active thermal management system at maximum capacity",
-      "Prepare for emergency power mode if temperature continues rising"
+      "Dispatch field crew for visual inspection of cooling fans",
+      "Check oil pump vibration levels",
+      "Reduce load on Transformer T-101 immediately"
     ],
     confidence: 0.92,
-    modelVersion: "SatAnomalyNet-v2.3"
+    modelVersion: "IndustrialNet-v4.1"
   },
-  'Signal Loss': {
-    rootCause: "Brief downlink interruption caused by atmospheric interference or ground station antenna tracking error. Signal strength dropped below -95 dBm threshold for 12 seconds.",
+  'Link Jitter': {
+    rootCause: "SCADA network latency spike due to packet collisions on the control VLAN. Likely broadcast storm or faulty switch port.",
     recommendations: [
-      "Switch to backup ground station for redundancy",
-      "Verify antenna pointing accuracy using star tracker data",
-      "Increase transmission power by 3dB if interference persists"
+      "Check switch logs for port flapping on VLAN 100",
+      "Verify unexpected traffic sources from IoT Gateway 3",
+      "reset network interface on Controller C-05"
     ],
     confidence: 0.78,
-    modelVersion: "SatAnomalyNet-v2.3"
+    modelVersion: "IndustrialNet-v4.1"
   }
 };
 
-export const analyzeAnomaly = async (event: AnomalyEvent, recentTelemetry: TelemetryData[]): Promise<string> => {
+export const analyzeAnomaly = async (event: AnomalyEvent, recentTelemetry: SensorMetric[]): Promise<string> => {
   // Simulate processing delay for realism
   await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
 
   // Get mock analysis based on anomaly type
   const analysis = mockAnalysisDatabase[event.type] || {
-    rootCause: `Anomaly detected in ${event.type}. Analysis indicates deviation from normal operational parameters based on recent telemetry patterns.`,
+    rootCause: `Anomaly detected in ${event.type}. Analysis indicates deviation from ideal grid parameters based on recent sensor logs.`,
     recommendations: [
-      "Continue monitoring telemetry for pattern changes",
-      "Review historical data for similar occurrences",
-      "Consult mission control for manual verification"
+      "Continue monitoring sensor trends",
+      "Cross-reference with maintenance schedule",
+      "Dispatch inspection drone or ground crew"
     ],
     confidence: 0.65,
-    modelVersion: "SatAnomalyNet-v2.3"
+    modelVersion: "IndustrialNet-v4.1"
   };
 
   // Add telemetry context
